@@ -12,17 +12,17 @@ const attrThermSensorUser = 0xf000;
 const attrThermExtTemperatureCalibration = 0xf00c;
 
 const osrcthermAlarmNames = {
-    0: "unknown fault",
-    1: "internal sensor open",
-    2: "internal sensor short",
-    3: "external sensor open",
-    4: "external sensor short",
-    5: "internal sensor timeout",
-    6: "external sensor timeout",
-    128: "internal temperature too high",
-    129: "internal temperature too low",
-    130: "external temperature too high",
-    131: "external temperature too low",
+    128: "unknown fault",
+    129: "internal sensor open",
+    130: "internal sensor short",
+    131: "external sensor open",
+    132: "external sensor short",
+    133: "internal sensor timeout",
+    134: "external sensor timeout",
+    144: "internal temperature too high",
+    145: "internal temperature too low",
+    146: "external temperature too high",
+    147: "external temperature too low",
 };
 
 const osrcthermAlarmOrder = [
