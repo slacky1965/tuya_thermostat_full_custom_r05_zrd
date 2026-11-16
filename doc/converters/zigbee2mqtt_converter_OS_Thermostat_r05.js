@@ -19,8 +19,10 @@ const osrcthermAlarmNames = {
     4: "external sensor short",
     5: "internal sensor timeout",
     6: "external sensor timeout",
-    128: "temperature too high",
-    129: "temperature too low",
+    128: "internal temperature too high",
+    129: "internal temperature too low",
+    130: "external temperature too high",
+    131: "external temperature too low",
 };
 
 const osrcthermAlarmOrder = [
@@ -31,8 +33,10 @@ const osrcthermAlarmOrder = [
     "external sensor short",
     "internal sensor timeout",
     "external sensor timeout",
-    "temperature too high",
-    "temperature too low",
+    "internal temperature too high",
+    "internal temperature too low",
+    "external temperature too high",
+    "external temperature too low",
 ];
 
 const osrcthermAlarmPending = new Map();
