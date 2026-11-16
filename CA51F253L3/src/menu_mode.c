@@ -186,6 +186,7 @@ void Menu_Enter(void) {
 	menu_set = MENU_ON;
 	menu_idx = 0;
 	mode_idle_tick = BTN_Tick10ms();
+	standby_hold = 0;                        /* entered from OFF: keep the screen on */
 	Led_SetBrightness(LED_BRIGHTNESS_MAX);   /* visible also when entered OFF */
 	Led_SymInit();
 	Menu_Load();
