@@ -49,6 +49,65 @@ static code const uint8_t sym_map[SYM_COUNT][2] = {
 	{  4, 0x80 },   /* SYM_LOCK   4.7 */
 	{  7, 0x20 },   /* SYM_ECO    7.5 */
 };
+
+/* Direct-LED PWM brightness: red flame P5.4/PWM4 and green weekday common    */
+/* P5.5/PWM5. The curve is tuned against the 8-level LDRV matrix.             */
+static code const uint8_t led_pwm_duty[8] = {
+	4, 8, 15, 25, 45, 62, 80, 100
+};
+#define LED_PWM_PERIOD 1843
+static uint8_t xdata led_level;
+static bit heat_on;
+
+static void Led_PwmDuty(uint8_t ch, uint8_t pct) {
+	uint16_t dut = 0;
+	uint8_t part = 0;
+
+	while(pct) {
+		dut += (uint16_t)(LED_PWM_PERIOD / 100);
+		part += (uint8_t)(LED_PWM_PERIOD % 100);
+		while(part >= 100) {
+			part -= 100;
+			dut++;
+		}
+		pct--;
+	}
+	INDEX = ch;
+	PWMDUTH = (uint8_t)(dut >> 8);
+	PWMDUTL = (uint8_t)dut;
+	PWMUPD |= (1 << ch);
+	while(PWMUPD);
+}
+
+static void Led_PwmInit(void) {
+	uint8_t ch;
+
+	P54F = P54_PWM4_SETTING;
+	P55F = P55_PWM5_SETTING;
+	for(ch = 4; ch <= 5; ch++) {
+		INDEX = ch;
+		PWMCON = 0;
+		PWMCFG = 0;                 /* direct LEDs are active high          */
+		PWMDIVH = (uint8_t)(LED_PWM_PERIOD >> 8);
+		PWMDIVL = (uint8_t)LED_PWM_PERIOD;
+		PWMDUTH = 0;
+		PWMDUTL = 0;
+		PWMUPD |= (1 << ch);
+		while(PWMUPD);
+		PWMEN |= (1 << ch);
+	}
+	led_level = 0;
+	heat_on = 0;
+}
+
+static void Led_PwmApply(void) {
+	uint8_t duty;
+
+	if(!(LXCON & 0xF0)) return;     /* display clock off: do not touch INDEX */
+	duty = led_level ? led_pwm_duty[led_level - 1] : 0;
+	Led_PwmDuty(4, heat_on ? duty : 0);
+	Led_PwmDuty(5, duty);
+}
 /**********************************/
 void LedDrv_Init(void) {
 	/* all COM lines P0.0..P0.7 (pins 61..54) as LED COM, high sink current */
@@ -71,7 +130,8 @@ void LedDrv_Init(void) {
 	P12F = P12_SEG18_SETTING;
 	P13F = P13_SEG19_SETTING;
 
-	/* Direct weekday LEDs (active high) and their common line (P5.5 high).    */
+	/* Direct weekday LEDs (active high); the common line P5.5 and the flame  */
+	/* P5.4 are PWM4/PWM5 outputs.                                            */
 	P57F = OUTPUT;
 	P56F = OUTPUT;
 	P50F = OUTPUT;
@@ -79,11 +139,9 @@ void LedDrv_Init(void) {
 	P52F = OUTPUT;
 	P34F = OUTPUT;
 	P35F = OUTPUT;
-	P55F = OUTPUT;                 /* green weekday common */
-	P54F = OUTPUT;                 /* red flame           */
-	P5  = (P5 & (uint8_t)~0xC7) | 0x20;
-	P3  = P3 & (uint8_t)~0x30;
-	P5 &= (uint8_t)~0x10;          /* flame off */
+	P5 &= (uint8_t)~0xC7;          /* weekday pins low */
+	P3 &= (uint8_t)~0x30;
+	Led_PwmInit();
 
 	LXDIVH = 0;
 	LXDIVL = 0;
@@ -99,11 +157,17 @@ void Led_SetBrightness(uint8_t level) {
 	if(level > LED_BRIGHTNESS_MAX) {
 		level = LED_BRIGHTNESS_MAX;
 	}
+	led_level = level;
 	DEBUG(LOCK_TRACE_EN, { if(lock_flash || net_flash || trace_tail) debug_putc((uint8_t)('0' + level)); });
 
 	if(level == LED_BRIGHTNESS_OFF) {
-		/* REG-COM: stop the LED/LCD clock -> display fully off */
-		LXCON &= 0x0F;
+		/* Keep the LED scan running with a blank hardware image at LDRV0.    */
+		/* The shadow buffer keeps the current screen so it can be restored    */
+		/* immediately when brightness returns.                                */
+		LXCON = (LXCON & 0x0F) | LEN(LEN_IRCH) | LMOD(LMOD_led);
+		LXCFG = (LXCFG & 0xF0) | LDRV(LDRV_0);
+		Led_PwmApply();
+		Led_Flush();               /* writes zeros while led_level == 0     */
 		return;
 	}
 
@@ -111,6 +175,7 @@ void Led_SetBrightness(uint8_t level) {
 	/* write also CLEARS BLNK: turning the display on always unblanks it.       */
 	LXCON = (LXCON & 0x0F) | LEN(LEN_IRCH) | LMOD(LMOD_led);
 	LXCFG = (LXCFG & 0xF0) | (level - 1);
+	Led_PwmApply();
 }
 /*******************************************************************************/
 /*******************************************************************************/
@@ -128,13 +193,9 @@ void Led_SymSet(uint8_t id, uint8_t on) {
 	uint8_t seg, mask;
 
 	if(id == SYM_HEAT) {
-		/* Red flame on P5.4 is a direct LED, not a matrix cell. */
-		if(on) {
-			P5 |= 0x10;
-		}
-		else {
-			P5 &= (uint8_t)~0x10;
-		}
+		/* Red flame on P5.4/PWM4; brightness follows led_level. */
+		heat_on = on;
+		Led_PwmApply();
 		return;
 	}
 	if(id >= SYM_COUNT) {
@@ -156,10 +217,11 @@ void Led_SymSet(uint8_t id, uint8_t on) {
 void Led_Flush(void) {
 	uint8_t i;
 
+	if(!(LXCON & 0xF0)) return;     /* display clock off: keep the frozen state */
 	DEBUG(LOCK_TRACE_EN, { if(lock_flash || net_flash || trace_tail) debug_putc('.'); });
 	for(i = 0; i < LED_BUF_N; i++) {
 		INDEX = i;
-		LXDAT = led_buf[i];
+		LXDAT = led_level ? led_buf[i] : 0x00;   /* level 0: blank hardware */
 	}
 }
 /********************************************************************************/
@@ -204,10 +266,11 @@ void Led_HalfDot(uint8_t on) {
 	}
 }
 
-/* Green weekday LEDs: active high, common P5.5 held high. Week 1..7 = Mon..Sun. */
+/* Green weekday LEDs: active high; common P5.5 is PWM5 and follows the       */
+/* selected brightness. Week 1..7 = Mon..Sun.                                  */
 /* P5 day mask 0xC7 = P5.7/P5.6/P5.2/P5.1/P5.0; P3 day mask 0x30 = P3.5/P3.4.    */
 void Led_Weekday(uint8_t week) {
-	uint8_t p5 = (uint8_t)(P5 & (uint8_t)~0xC7) | 0x20;   /* common on, days off */
+	uint8_t p5 = (uint8_t)(P5 & (uint8_t)~0xC7);   /* all days off        */
 	uint8_t p3 = (uint8_t)(P3 & (uint8_t)~0x30);
 
 	switch(week) {
@@ -413,8 +476,10 @@ void Led_BootTest(void) {
 		LXDAT = 0xFF;
 	}
 	/* all green weekday LEDs and the red flame on, same 3 s window */
-	P5 |= 0xD7;                    /* P5.7/P5.6/P5.2/P5.1/P5.0 + P5.4 flame */
-	P3 |= 0x30;                    /* P3.5/P3.4                             */
+	Led_SetBrightness(LED_BRIGHTNESS_MAX);
+	Led_SymSet(SYM_HEAT, 1);
+	P5 |= 0xC7;                    /* P5.7/P5.6/P5.2/P5.1/P5.0 */
+	P3 |= 0x30;                    /* P3.5/P3.4                */
 
 	for(t = 0; t < (LED_BOOT_ALL_MS / 100); t++) {
 		WDFLG = 0xA5;
@@ -450,5 +515,5 @@ void Led_BootTest(void) {
 	/* caller switches to normal brightness (Led_SetBrightness) in the main  */
 	/* loop.                                                                 */
 	Led_SymInit();
-	LXCON &= 0x0F;
+	Led_SetBrightness(LED_BRIGHTNESS_OFF);
 }
