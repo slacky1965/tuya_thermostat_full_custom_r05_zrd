@@ -152,7 +152,7 @@ _CODE_ZCL_ status_t zcl_alarm_AddAlarmTab(u8 endpoint, u8 alarmCode, u16 cluster
 
 _CODE_ZCL_ u8 zcl_alarm_getAlarmRsp(u8 srcEp, epInfo_t *pDstEpInfo, u8 disableDefaultRsp, u8 seqNo, getAlarmRsp_t *pGetAlarmRsp)
 {
-	u8 buf[8];
+	buf[8];
 
 	u8 *pBuf = buf;
 
@@ -258,7 +258,7 @@ _CODE_ZCL_ static status_t zcl_alarm_getAlarmPrc(zclIncoming_t *pInMsg)
 		getAlarmRsp_t getAlarmRsp;
 		TL_SETSTRUCTCONTENT(getAlarmRsp, 0);
 
-		zcl_alarmTable_t *pEntry = zcl_alarm_findEarliestAlarmEntry(pApsdeInd->indInfo.dst_ep);
+		zcl_alarmTable_t *pEntry = zcl_alarm_findEarliestAlarmEntry(endpoint);
 		if(pEntry){
 			getAlarmRsp.status = ZCL_STA_SUCCESS;
 			getAlarmRsp.alarmCode = pEntry->alarm.alarmCode;
