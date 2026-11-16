@@ -116,20 +116,23 @@ static void alarm_sync_code(u8 code, u16 cluster_id, u16 old_on, u16 new_on) {
 	}
 }
 
+/* ZCL Alarms mapping for local faults. All of them belong to the Thermostat   */
+/* cluster (0x0201); the codes are vendor-specific (>= 0x80) so they never     */
+/* collide with the thermostat's standard 0x00/0x01/0x02 alarm codes.          */
 static u8 alarm_ensure_mask(u16 mask) {
 	u8 changed = 0;
 
-	if(mask & FAULT_E0) changed |= alarm_ensure(0x00, 0x0000);
-	if(mask & FAULT_E1) changed |= alarm_ensure(0x01, 0x0402);
-	if(mask & FAULT_E2) changed |= alarm_ensure(0x02, 0x0402);
-	if(mask & FAULT_E3) changed |= alarm_ensure(0x03, 0x0402);
-	if(mask & FAULT_E4) changed |= alarm_ensure(0x04, 0x0402);
-	if(mask & FAULT_E5) changed |= alarm_ensure(0x05, 0x0402);
-	if(mask & FAULT_E6) changed |= alarm_ensure(0x06, 0x0402);
-	if(mask & FAULT_IN_HI)  changed |= alarm_ensure(0x80, 0x0402);
-	if(mask & FAULT_IN_LO)  changed |= alarm_ensure(0x81, 0x0402);
-	if(mask & FAULT_EXT_HI) changed |= alarm_ensure(0x82, 0x0402);
-	if(mask & FAULT_EXT_LO) changed |= alarm_ensure(0x83, 0x0402);
+	if(mask & FAULT_E0) changed |= alarm_ensure(0x80, 0x0201);
+	if(mask & FAULT_E1) changed |= alarm_ensure(0x81, 0x0201);
+	if(mask & FAULT_E2) changed |= alarm_ensure(0x82, 0x0201);
+	if(mask & FAULT_E3) changed |= alarm_ensure(0x83, 0x0201);
+	if(mask & FAULT_E4) changed |= alarm_ensure(0x84, 0x0201);
+	if(mask & FAULT_E5) changed |= alarm_ensure(0x85, 0x0201);
+	if(mask & FAULT_E6) changed |= alarm_ensure(0x86, 0x0201);
+	if(mask & FAULT_IN_HI)  changed |= alarm_ensure(0x90, 0x0201);
+	if(mask & FAULT_IN_LO)  changed |= alarm_ensure(0x91, 0x0201);
+	if(mask & FAULT_EXT_HI) changed |= alarm_ensure(0x92, 0x0201);
+	if(mask & FAULT_EXT_LO) changed |= alarm_ensure(0x93, 0x0201);
 	return changed;
 }
 
@@ -174,23 +177,23 @@ void App_Link_FaultSet(uint16_t mask) {
 	alarm_sync_seen = 1;
 
 	if(mask != old) {
-		alarm_sync_code(0x00, 0x0000, (u16)(old & FAULT_E0), (u16)(mask & FAULT_E0));
-		alarm_sync_code(0x01, 0x0402, (u16)(old & FAULT_E1), (u16)(mask & FAULT_E1));
-		alarm_sync_code(0x02, 0x0402, (u16)(old & FAULT_E2), (u16)(mask & FAULT_E2));
-		alarm_sync_code(0x03, 0x0402, (u16)(old & FAULT_E3), (u16)(mask & FAULT_E3));
-		alarm_sync_code(0x04, 0x0402, (u16)(old & FAULT_E4), (u16)(mask & FAULT_E4));
-		alarm_sync_code(0x05, 0x0402, (u16)(old & FAULT_E5), (u16)(mask & FAULT_E5));
-		alarm_sync_code(0x06, 0x0402, (u16)(old & FAULT_E6), (u16)(mask & FAULT_E6));
-		alarm_sync_code(0x80, 0x0402,
+		alarm_sync_code(0x80, 0x0201, (u16)(old & FAULT_E0), (u16)(mask & FAULT_E0));
+		alarm_sync_code(0x81, 0x0201, (u16)(old & FAULT_E1), (u16)(mask & FAULT_E1));
+		alarm_sync_code(0x82, 0x0201, (u16)(old & FAULT_E2), (u16)(mask & FAULT_E2));
+		alarm_sync_code(0x83, 0x0201, (u16)(old & FAULT_E3), (u16)(mask & FAULT_E3));
+		alarm_sync_code(0x84, 0x0201, (u16)(old & FAULT_E4), (u16)(mask & FAULT_E4));
+		alarm_sync_code(0x85, 0x0201, (u16)(old & FAULT_E5), (u16)(mask & FAULT_E5));
+		alarm_sync_code(0x86, 0x0201, (u16)(old & FAULT_E6), (u16)(mask & FAULT_E6));
+		alarm_sync_code(0x90, 0x0201,
 		                (u16)(old & FAULT_IN_HI),
 		                (u16)(mask & FAULT_IN_HI));
-		alarm_sync_code(0x81, 0x0402,
+		alarm_sync_code(0x91, 0x0201,
 		                (u16)(old & FAULT_IN_LO),
 		                (u16)(mask & FAULT_IN_LO));
-		alarm_sync_code(0x82, 0x0402,
+		alarm_sync_code(0x92, 0x0201,
 		                (u16)(old & FAULT_EXT_HI),
 		                (u16)(mask & FAULT_EXT_HI));
-		alarm_sync_code(0x83, 0x0402,
+		alarm_sync_code(0x93, 0x0201,
 		                (u16)(old & FAULT_EXT_LO),
 		                (u16)(mask & FAULT_EXT_LO));
 		app_fault_mask = (u16)mask;
