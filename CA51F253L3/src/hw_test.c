@@ -6,7 +6,7 @@
 #include "include/stdint.h"
 #include "include/config.h"
 
-#if KEY_TEST_EN || LED_TEST_EN || LED_GPIO_TEST_EN
+#if KEY_TEST_EN || LED_TEST_EN || LED_GPIO_TEST_EN || LED_PWM_TEST_EN
 
 #include "include/ca51f2sfr.h"
 #include "include/ca51f2xsfr.h"
@@ -334,4 +334,73 @@ void Led_Gpio_TestMain(void) {
 
 #endif /* LED_GPIO_TEST_EN */
 
-#endif /* KEY_TEST_EN || LED_TEST_EN || LED_GPIO_TEST_EN */
+#if LED_PWM_TEST_EN
+
+/* Matrix LDRV and the direct-LED PWM channels both follow the production     */
+/* Led_SetBrightness() curve (flame P5.4/PWM4, weekday common P5.5/PWM5).      */
+static void Pwm_TestLevel(uint8_t level) {
+	Led_SetBrightness(level);
+	DEBUG(BUTTONS_EN, {
+		debug_puts("level ");
+		debug_dec(level);
+		debug_puts("\r\n");
+	});
+}
+
+static uint8_t Pwm_TestKeyState(void) {
+	uint8_t p3 = P3;
+	uint8_t v = 0;
+
+	if(!(p3 & 0x08)) v |= 0x01;        /* Up:   P3.3 */
+	if(!(p3 & 0x04)) v |= 0x02;        /* Down: P3.2 */
+	return v;
+}
+
+static void Pwm_TestAllOn(void) {
+	uint8_t i;
+
+	for(i = 0; i < 8; i++) {
+		INDEX = i;
+		LXDAT = 0xFF;
+	}
+	P5 |= 0xC7;                 /* P5.7/P5.6/P5.2/P5.1/P5.0 high       */
+	P3 |= 0x30;                 /* P3.5/P3.4 high                     */
+}
+
+/* All LEDs on at level 1; Up/Down step the common level 1..8. */
+void Led_Pwm_TestMain(void) {
+	uint8_t level = 1;
+	uint8_t last = 0;
+	uint8_t cur;
+
+	debug_init();
+
+	LedDrv_Init();
+	Pwm_TestAllOn();
+	Led_SymSet(SYM_HEAT, 1);
+	Pwm_TestLevel(level);
+
+	P33F = INPUT | PU_EN;              /* Up/Down step the level */
+	P32F = INPUT | PU_EN;
+
+	for(;;) {
+		cur = Pwm_TestKeyState();
+
+		if((cur & 0x01) && !(last & 0x01) && level < 8) {
+			level++;
+			Pwm_TestLevel(level);
+		}
+		else if((cur & 0x02) && !(last & 0x02) && level > 1) {
+			level--;
+			Pwm_TestLevel(level);
+		}
+
+		last = cur;
+		WDFLG = 0xA5;
+		Delay_ms(10);
+	}
+}
+
+#endif /* LED_PWM_TEST_EN */
+
+#endif /* KEY_TEST_EN || LED_TEST_EN || LED_GPIO_TEST_EN || LED_PWM_TEST_EN */

@@ -14,4 +14,8 @@ void Led_TestMain(void);              /* LED matrix mapping bench; never returns
 void Led_Gpio_TestMain(void);         /* direct GPIO LED mapping bench; never returns */
 #endif
 
+#if LED_PWM_TEST_EN
+void Led_Pwm_TestMain(void);          /* direct LED PWM brightness bench; never returns */
+#endif
+
 #endif
