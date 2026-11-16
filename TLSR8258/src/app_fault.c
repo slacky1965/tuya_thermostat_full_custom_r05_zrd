@@ -126,8 +126,10 @@ static u8 alarm_ensure_mask(u16 mask) {
 	if(mask & FAULT_E4) changed |= alarm_ensure(0x04, 0x0402);
 	if(mask & FAULT_E5) changed |= alarm_ensure(0x05, 0x0402);
 	if(mask & FAULT_E6) changed |= alarm_ensure(0x06, 0x0402);
-	if(mask & (FAULT_IN_HI | FAULT_EXT_HI)) changed |= alarm_ensure(0x80, 0x0402);
-	if(mask & (FAULT_IN_LO | FAULT_EXT_LO)) changed |= alarm_ensure(0x81, 0x0402);
+	if(mask & FAULT_IN_HI)  changed |= alarm_ensure(0x80, 0x0402);
+	if(mask & FAULT_IN_LO)  changed |= alarm_ensure(0x81, 0x0402);
+	if(mask & FAULT_EXT_HI) changed |= alarm_ensure(0x82, 0x0402);
+	if(mask & FAULT_EXT_LO) changed |= alarm_ensure(0x83, 0x0402);
 	return changed;
 }
 
@@ -180,11 +182,17 @@ void App_Link_FaultSet(uint16_t mask) {
 		alarm_sync_code(0x05, 0x0402, (u16)(old & FAULT_E5), (u16)(mask & FAULT_E5));
 		alarm_sync_code(0x06, 0x0402, (u16)(old & FAULT_E6), (u16)(mask & FAULT_E6));
 		alarm_sync_code(0x80, 0x0402,
-		                (u16)(old & (FAULT_IN_HI | FAULT_EXT_HI)),
-		                (u16)(mask & (FAULT_IN_HI | FAULT_EXT_HI)));
+		                (u16)(old & FAULT_IN_HI),
+		                (u16)(mask & FAULT_IN_HI));
 		alarm_sync_code(0x81, 0x0402,
-		                (u16)(old & (FAULT_IN_LO | FAULT_EXT_LO)),
-		                (u16)(mask & (FAULT_IN_LO | FAULT_EXT_LO)));
+		                (u16)(old & FAULT_IN_LO),
+		                (u16)(mask & FAULT_IN_LO));
+		alarm_sync_code(0x82, 0x0402,
+		                (u16)(old & FAULT_EXT_HI),
+		                (u16)(mask & FAULT_EXT_HI));
+		alarm_sync_code(0x83, 0x0402,
+		                (u16)(old & FAULT_EXT_LO),
+		                (u16)(mask & FAULT_EXT_LO));
 		app_fault_mask = (u16)mask;
 	}
 
