@@ -22,6 +22,7 @@
 #include "include/rtc.h"
 #include "include/settings.h"
 #include "include/modes.h"
+#include "include/hw_test.h"
 /*********************************************************************************************************************
 	r05 thermostat main.
 	buttons.c/h - four GPIO keys (SC05B outputs), key events and chords.
@@ -371,8 +372,19 @@ void main(void) {
 	LVDCON = (uint8_t)(LVDE(1) | LVDS_reset | LVDF | LVDTH_1p8V);
 	WDT_Init();
 
+	/* Bench-test builds divert here and never start the normal UI. */
+#if KEY_TEST_EN
+	Key_TestMain();
+#elif LED_TEST_EN
+	Led_TestMain();
+#elif LED_GPIO_TEST_EN
+	Led_Gpio_TestMain();
+#elif LED_PWM_TEST_EN
+	Led_Pwm_TestMain();
+#endif
+
 	/* ZT3L link first: bring UART1 up BEFORE the ~5 s boot test so the Info     */
-	/* request (sent ~5 s after power-on) is not missed while the display is     */
+	/* request (sent ~1 s after power-on) is not missed while the display is     */
 	/* busy. The RX ISR fills the ring; Led_BootTest() pumps Uart1_Poll() from   */
 	/* its delay slices, so frames are parsed AND answered during the test too.  */
 	Uart1_Initial();                    /* interrupt-driven RX ring              */
@@ -1050,6 +1062,11 @@ if(!Ota_IsPending()) Temp_ErPoll();
 				/* nothing may touch the display brightness mid-flash)              */
 				if(lock_flash || net_flash) {
 					/* blink in progress: leave the display to its driver */
+				}
+				else if(!Screen_ModeFree()) {
+					/* settings menu (entered from OFF) owns the display:   */
+					/* keep its max brightness, do not run the standby fade */
+					standby_hold = 0;
 				}
 				else if(net_hold) {
 					/* provisioning done: show NET steady a bit longer, then     */

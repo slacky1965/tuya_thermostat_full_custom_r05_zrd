@@ -10,7 +10,8 @@
 /* hundredths of deg C (x100, matching ZCL); calibration and dead band are in    */
 /* tenths (x10, ZCL 0.1 C); humidity is u16 x100 (0..10000). ID ranges:          */
 /* 0x00-0x1F data/state, 0x20-0x26 weekly schedule (one frame per day),          */
-/* 0x27-0x28 actions, 0xC0-0xDF OTA (reserved), 0xE0 debug log, 0xE1-0xFF spare. */
+/* 0x27-0x2B actions/alive, 0xC0 OTA start (0xC1-0xDF spare), 0xE0 debug log,     */
+/* 0xE1-0xFF spare.                                                              */
 /*                                                                               */
 /* Frame CRC (CRC-8/MAXIM) is validated by the parser: frames with a bad CRC     */
 /* are dropped there and never reach the dispatcher, so handlers do not re-      */

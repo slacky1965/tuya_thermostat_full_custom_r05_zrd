@@ -391,9 +391,9 @@ static void lnk_put16(uint8_t xdata *p, uint16_t v) {
 }
 /********************************************************************************/
 /* Handler: LNK_CMD_INFO (0x01)  -  identity/version handshake.                 */
-/* Role: Req/DLC=0 -> reply; Rep/DLC>0 -> informational only (apply nothing)    */
-/*   (length varies with peer model, range-checked). Cmd not defined for        */
-/*   Info (just Req/Rep).                                                       */
+/* Role: Req/DLC=0 -> reply with identity; an unaddressed Rep is informational  */
+/*   only (nothing is applied) and is accepted solely at the fixed prototype    */
+/*   length DLC=5. Cmd is not defined for Info (just Req/Rep).                  */
 /* Payload layout: ver_proto(u8) + ver_app(u16 BE) + chipid(u16 BE) + model.    */
 /********************************************************************************/
 static void h_info(link_ctx_t xdata *cx) {
@@ -420,10 +420,7 @@ static void h_info(link_ctx_t xdata *cx) {
 		lnk_txq_post(LNK_CMD_NET_STATUS, UART_F_ACK, 0, 0, 0, LNK_INFO_NET_DELAY);
 		return;
 	}
-	/* Report/Reply carrying the peer identity: informational only            */
-	if(f->payload[LNK_INFO_VER_PROTO] != LNK_PROTO_VER) {
-		r->status = LNK_ST_BAD_VER;
-	}
+	/* Unaddressed Info Rep: identity only, nothing to apply here.            */
 }
 /*********************************************************************************/
 /* Handler: LNK_CMD_TIME (0x00)  -  clock synchronisation.                       */
@@ -657,7 +654,8 @@ static const lnk_cmd_t code lnk_table[] =
 #define LNK_TABLE_N  (sizeof(lnk_table) / sizeof(lnk_table[0]))
 
 /******************************************************************************/
-/* Send a frame with the next outgoing SEQ.                                   */
+/* Validate an incoming frame against flags, length, type, role and schema.   */
+/* Returns the LNK_ST_* status and the lnk_table[] index of the command.      */
 /******************************************************************************/
 static uint8_t lnk_validate(const uart_frame_t xdata *f, uint8_t xdata *index) {
 	const lnk_cmd_t code *e;

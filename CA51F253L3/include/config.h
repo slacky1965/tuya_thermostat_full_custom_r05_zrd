@@ -52,7 +52,7 @@
 #endif
 
 /*** 3. UART links ********************************************************************************/
-/* UART1 = ZT3L/ZR link bus, TX = P6.6, RX = P6.7, 115200 8N1                                     */
+/* UART1 = ZT3L link bus, TX = P6.6, RX = P6.7, 115200 8N1                                      */
 #define UART1_EN
 #define UART1_BAUTRATE      115200
 
@@ -172,5 +172,6 @@
 #define KEY_TEST_EN     0   /* 1 = main() runs Key_TestMain(); normal UI never starts           */
 #define LED_TEST_EN     0   /* 1 = main() runs Led_TestMain(); normal UI never starts           */
 #define LED_GPIO_TEST_EN 0  /* 1 = main() runs Led_Gpio_TestMain(); normal UI never starts      */
+#define LED_PWM_TEST_EN 0   /* 1 = main() runs Led_Pwm_TestMain(); normal UI never starts       */
 /****************************************************************************************************/
 #endif
