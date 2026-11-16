@@ -97,27 +97,17 @@ static uint8_t Temp_ErAltCondition(void) {
 	if(temp_src != SENSOR_SRC_ALL) return 0;
 	in  = Temp_Pipeline_Get(TEMP_INTERNAL);
 	ext = Temp_Pipeline_Get(TEMP_EXTERNAL);
-	if(in->accepted_valid && ext->accepted_valid) return 0;
-	return (uint8_t)(in->accepted_valid || ext->accepted_valid);
-}
-
-static void Temp_DrawRange(uint8_t range) {
-	if(range == FAULT_RANGE_UP) {
-		Led_Letters(CH_U, CH_P);
-	}
-	else {
-		Led_Letters(CH_L, CH_O);
-	}
-	Led_SymSet(SYM_DEGC, 0);
-	Led_HalfDot(0);
-	Led_Flush();
+	/* Only an EXTERNAL probe failure is announced in AL: the display falls
+	   back to the internal temperature and alternates it with the external
+	   E-code. A dead INTERNAL probe is network-only (the external temperature
+	   stays on screen, the relay runs on it). */
+	return (uint8_t)(!ext->accepted_valid && in->accepted_valid);
 }
 
 void Temp_Draw(const temp_sample_t xdata *sample) {
 	const temp_sample_t xdata *in;
 	const temp_sample_t xdata *ext;
 	uint8_t err_code;
-	uint8_t range;
 
 	/* WS override: while the wireless sensor is fresh it drives the relay, so  */
 	/* it owns the big digits too. Its value was validated on arrival and the   */
@@ -129,7 +119,6 @@ void Temp_Draw(const temp_sample_t xdata *sample) {
 	}
 
 	err_code = Fault_DisplayCodeFor((uint8_t)temp_src);
-	range = Fault_DisplayRange();
 
 	if(temp_src == SENSOR_SRC_ALL) {
 		in  = Temp_Pipeline_Get(TEMP_INTERNAL);
@@ -144,18 +133,22 @@ void Temp_Draw(const temp_sample_t xdata *sample) {
 					Led_ErrorCode(err_code);
 				}
 			}
-			else if(range != FAULT_RANGE_NONE) {
-				Temp_DrawRange(range);
-			}
 			else {
 				Led_Temp(sample->accepted_c100);
 			}
 			return;
 		}
 
+		if(ext->accepted_valid && !in->accepted_valid) {
+			/* Internal probe failed: AL keeps the external temperature on   */
+			/* screen; the internal E-code is network-only.                   */
+			Led_Temp(ext->accepted_c100);
+			return;
+		}
+
 		if(in->accepted_valid || ext->accepted_valid) {
-			/* half-dead pair: alternate survivor temperature and the fault  */
-			/* code while the error machine runs.                             */
+			/* External probe failed: alternate the internal temperature and  */
+			/* the external E-code while the error machine runs.              */
 			if(er_alt_run && !er_alt_lit) {
 				Led_Temp(in->accepted_valid ? in->accepted_c100
 				                            : ext->accepted_c100);
@@ -163,24 +156,14 @@ void Temp_Draw(const temp_sample_t xdata *sample) {
 			else if(err_code != 0xFF) {
 				Led_ErrorCode(err_code);
 			}
-			else if(range != FAULT_RANGE_NONE) {
-				Temp_DrawRange(range);
-			}
 			else {
 				Led_TempErr();
 			}
 			return;
 		}
 
-		if(err_code != 0xFF) {
-			Led_ErrorCode(err_code);
-		}
-		else if(range != FAULT_RANGE_NONE) {
-			Temp_DrawRange(range);
-		}
-		else {
-			Led_TempErr();
-		}
+		/* Both probes failed: no valid temperature, only "Er" on screen.    */
+		Led_TempErr();
 		return;
 	}
 
@@ -191,9 +174,6 @@ void Temp_Draw(const temp_sample_t xdata *sample) {
 		else {
 			Led_ErrorCode(err_code);
 		}
-	}
-	else if(range != FAULT_RANGE_NONE) {
-		Temp_DrawRange(range);
 	}
 	else if(sample->accepted_valid) {
 		Led_Temp(sample->accepted_c100);
@@ -206,8 +186,7 @@ void Temp_Draw(const temp_sample_t xdata *sample) {
 /* 100 ms poll driving the temperature/error alternation (AL half-dead pair or
    E0). Redraws only at phase transitions through Temp_Draw(); the machine
    stops while power is OFF, a mode owns the screen, an adjust window
-   (Set / %RH) is up, or a fresh WS owns the digits. On every restart the
-   temperature phase comes first. */
+   (Set / %RH) is up, or a fresh WS owns the digits. */
 void Temp_ErPoll(void) {
 	uint16_t now;
 
