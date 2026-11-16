@@ -211,7 +211,6 @@ extern "C" {
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT         ON
 #define ZCL_HUMIDITY_MEASUREMENT_SUPPORT            ON
 #define ZCL_ALARMS_SUPPORT                          ON
-#define ZCL_ALARM_TABLE_NUM                         12
 #define ZCL_ATTR_ALARM_COUNT_ENABLE                 1
 
 

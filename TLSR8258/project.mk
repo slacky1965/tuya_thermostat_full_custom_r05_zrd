@@ -12,6 +12,7 @@ $(OUT_PATH)/$(SRC_PATH)/zcl/zcl_app_thermostat.o \
 $(OUT_PATH)/$(SRC_PATH)/zcl/zcl_app_fancontrol.o \
 $(OUT_PATH)/$(SRC_PATH)/zcl/zcl_relative_humidity_measurement.o \
 $(OUT_PATH)/$(SRC_PATH)/zcl/zcl_reporting.o \
+$(OUT_PATH)/$(SRC_PATH)/zcl/zcl_alarm.o \
 $(OUT_PATH)/$(SRC_PATH)/app_endpoint_cfg.o \
 $(OUT_PATH)/$(SRC_PATH)/app_utility.o \
 $(OUT_PATH)/$(SRC_PATH)/app_time.o \

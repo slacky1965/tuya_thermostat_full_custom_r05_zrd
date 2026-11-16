@@ -45,8 +45,6 @@ $(OUT_PATH)/zigbee/zcl/measument_sensing/zcl_temperature_measurement_attr.o \
 $(OUT_PATH)/zigbee/zcl/light_color_control/zcl_light_colorCtrl.o \
 $(OUT_PATH)/zigbee/zcl/light_color_control/zcl_light_colorCtrl_attr.o \
 $(OUT_PATH)/zigbee/zcl/hvac/zcl_thermostat.o \
-$(OUT_PATH)/zigbee/zcl/general/zcl_alarm.o \
-$(OUT_PATH)/zigbee/zcl/general/zcl_alarm_attr.o \
 $(OUT_PATH)/zigbee/zcl/general/zcl_basic.o \
 $(OUT_PATH)/zigbee/zcl/general/zcl_basic_attr.o \
 $(OUT_PATH)/zigbee/zcl/general/zcl_binary_input.o \
